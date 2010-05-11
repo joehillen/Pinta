@@ -35,8 +35,15 @@ namespace Pinta.Core
 {
 	public class HistoryManager
 	{
+		public Gtk.ListStore ListStore { get; private set; }
+		
 		List<BaseHistoryItem> history = new List<BaseHistoryItem> ();
 		int historyPointer = -1;
+		
+		public HistoryManager ()
+		{
+			ListStore = new ListStore (typeof (BaseHistoryItem));
+		}
 		
 		public int Pointer {
 			get { return historyPointer; }
@@ -63,7 +70,7 @@ namespace Pinta.Core
 					history.RemoveAt(i);
 					item.Dispose();
 					//Remove from ListStore
-					PintaCore.HistoryListStore.Remove (ref item.Id);
+					ListStore.Remove (ref item.Id);
 					
 				} else if (item.State == HistoryItemState.Undo) {
 					break;
@@ -71,12 +78,16 @@ namespace Pinta.Core
 			}
 		
 			//Add new undo to ListStore
-			new_item.Id = PintaCore.HistoryListStore.AppendValues (new_item);
+			new_item.Id = ListStore.AppendValues (new_item);
 			history.Add (new_item);
 			historyPointer = history.Count - 1;
 			
-			PintaCore.Workspace.IsDirty = true;
-			PintaCore.Actions.Edit.Undo.Sensitive = true;
+			if (new_item.CausesDirty)
+				PintaCore.Workspace.IsDirty = true;
+				
+			if (history.Count > 1)
+				PintaCore.Actions.Edit.Undo.Sensitive = true;
+				
 			PintaCore.Actions.Edit.Redo.Sensitive = false;
 			OnHistoryItemAdded (new_item);
 		}
@@ -89,12 +100,12 @@ namespace Pinta.Core
 				BaseHistoryItem item = history[historyPointer];
 				item.Undo ();
 				item.State = HistoryItemState.Redo;
-				PintaCore.HistoryListStore.SetValue (item.Id, 0, item);
+				ListStore.SetValue (item.Id, 0, item);
 				history[historyPointer] = item;
 				historyPointer--;
 			}	
 			
-			if (historyPointer == -1) {
+			if (historyPointer == 0) {
 				PintaCore.Workspace.IsDirty = false;
 				PintaCore.Actions.Edit.Undo.Sensitive = false;
 			}
@@ -105,22 +116,25 @@ namespace Pinta.Core
 		
 		public void Redo ()
 		{
-			if (historyPointer >= history.Count - 1) {
+			if (historyPointer >= history.Count - 1)
 				throw new InvalidOperationException ("Redo stack is empty");
-			} else {
-				historyPointer++;
-				BaseHistoryItem item = history[historyPointer];
-				item.Redo ();
-				item.State = HistoryItemState.Undo;
-				PintaCore.HistoryListStore.SetValue (item.Id, 0, item);
-				history[historyPointer] = item;
-			}
+
+			historyPointer++;
+			BaseHistoryItem item = history[historyPointer];
+			item.Redo ();
+			item.State = HistoryItemState.Undo;
+			ListStore.SetValue (item.Id, 0, item);
+			history[historyPointer] = item;
 
 			if (historyPointer == history.Count - 1)
 				PintaCore.Actions.Edit.Redo.Sensitive = false;
 				
-			PintaCore.Workspace.IsDirty = true;
-			PintaCore.Actions.Edit.Undo.Sensitive = true;
+			if (item.CausesDirty)
+				PintaCore.Workspace.IsDirty = true;
+
+			if (history.Count > 1)
+				PintaCore.Actions.Edit.Undo.Sensitive = true;
+				
 			OnActionRedone ();
 		}
 		
@@ -128,7 +142,7 @@ namespace Pinta.Core
 		{
 			history.ForEach (delegate(BaseHistoryItem item) { item.Dispose (); } );
 			history.Clear();	
-			PintaCore.HistoryListStore.Clear ();	
+			ListStore.Clear ();	
 			historyPointer = -1;
 			
 			PintaCore.Workspace.IsDirty = false;

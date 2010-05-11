@@ -42,6 +42,16 @@ namespace Pinta.Core
 			w.InvalidateRect (new Rectangle (0, 0, width, height), true);
 		}
 		
+		public static Rectangle GetBounds (this Window w)
+		{
+			int width;
+			int height;
+			
+			w.GetSize (out width, out height);
+			
+			return new Rectangle (0, 0, width, height);
+		}
+		
 		public static Cairo.Color ToCairoColor (this Gdk.Color color)
 		{
 			return new Cairo.Color ((double)color.Red / ushort.MaxValue, (double)color.Green / ushort.MaxValue, (double)color.Blue / ushort.MaxValue);
@@ -51,6 +61,16 @@ namespace Pinta.Core
 		{
 			Cairo.Color cairo_color = selection.CurrentColor.ToCairoColor ();
 			return new Cairo.Color (cairo_color.R, cairo_color.G, cairo_color.B, (double)selection.CurrentAlpha / ushort.MaxValue);
+		}
+		
+		public static Gdk.Point Center (this Gdk.Rectangle rect)
+		{
+			return new Gdk.Point(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+		}
+
+		public static ColorBgra ToBgraColor (this Gdk.Color color)
+		{
+			return ColorBgra.FromBgr ((byte)(color.Blue * 255 / ushort.MaxValue),  (byte)(color.Green * 255 / ushort.MaxValue), (byte)(color.Red * 255 / ushort.MaxValue));
 		}
 	}
 }

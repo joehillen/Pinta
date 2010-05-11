@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="3.5" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="3.5">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -10,6 +10,7 @@
     <RootNamespace>Pinta.Resources</RootNamespace>
     <AssemblyName>Pinta.Resources</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <CodePage>65001</CodePage>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -30,6 +31,8 @@
     <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
+    <Reference Include="gtk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
     <Reference Include="System" />
     <Reference Include="gdk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
     <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
@@ -283,6 +286,24 @@
     <EmbeddedResource Include="Resources\Menu.Adjustments.Posterize.png">
       <LogicalName>Menu.Adjustments.Posterize.png</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.Bold.png">
+      <LogicalName>Toolbar.Bold.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.CenterAlignment.png">
+      <LogicalName>Toolbar.CenterAlignment.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.Italic.png">
+      <LogicalName>Toolbar.Italic.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.LeftAlignment.png">
+      <LogicalName>Toolbar.LeftAlignment.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.RightAlignment.png">
+      <LogicalName>Toolbar.RightAlignment.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.Underline.png">
+      <LogicalName>Toolbar.Underline.png</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\Menu.Effects.Artistic.InkSketch.png">
       <LogicalName>Menu.Effects.Artistic.InkSketch.png</LogicalName>
     </EmbeddedResource>
@@ -315,6 +336,93 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\Menu.Effects.Photo.Glow.png">
       <LogicalName>Menu.Effects.Photo.Glow.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Photo.RedEyeRemove.png">
+      <LogicalName>Menu.Effects.Photo.RedEyeRemove.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Photo.Sharpen.png">
+      <LogicalName>Menu.Effects.Photo.Sharpen.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Photo.SoftenPortrait.png">
+      <LogicalName>Menu.Effects.Photo.SoftenPortrait.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Stylize.EdgeDetect.png">
+      <LogicalName>Menu.Effects.Stylize.EdgeDetect.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Render.Clouds.png">
+      <LogicalName>Menu.Effects.Render.Clouds.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Render.JuliaFractal.png">
+      <LogicalName>Menu.Effects.Render.JuliaFractal.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Render.MandelbrotFractal.png">
+      <LogicalName>Menu.Effects.Render.MandelbrotFractal.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Distort.Bulge.png">
+      <LogicalName>Menu.Effects.Distort.Bulge.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Noise.Median.png">
+      <LogicalName>Menu.Effects.Noise.Median.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Noise.ReduceNoise.png">
+      <LogicalName>Menu.Effects.Noise.ReduceNoise.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Noise.AddNoise.png">
+      <LogicalName>Menu.Effects.Noise.AddNoise.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Stylize.Outline.png">
+      <LogicalName>Menu.Effects.Stylize.Outline.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Distort.Dents.png">
+      <LogicalName>Menu.Effects.Distort.Dents.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Distort.PolarInversion.png">
+      <LogicalName>Menu.Effects.Distort.PolarInversion.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Distort.Twist.png">
+      <LogicalName>Menu.Effects.Distort.Twist.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Distort.Tile.png">
+      <LogicalName>Menu.Effects.Distort.Tile.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Distort.Pixelate.png">
+      <LogicalName>Menu.Effects.Distort.Pixelate.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Distort.FrostedGlass.png">
+      <LogicalName>Menu.Effects.Distort.FrostedGlass.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Stylize.Relief.png">
+      <LogicalName>Menu.Effects.Stylize.Relief.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Menu.Effects.Stylize.Emboss.png">
+      <LogicalName>Menu.Effects.Stylize.Emboss.png</LogicalName>
+    </EmbeddedResource>
+	<EmbeddedResource Include="Resources\Toolbar.ConicalGradient.png">
+      <LogicalName>Toolbar.ConicalGradient.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.DiamondGradient.png">
+      <LogicalName>Toolbar.DiamondGradient.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.LinearGradient.png">
+      <LogicalName>Toolbar.LinearGradient.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.LinearReflectedGradient.png">
+      <LogicalName>Toolbar.LinearReflectedGradient.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.RadialGradient.png">
+      <LogicalName>Toolbar.RadialGradient.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.AntiAliasingDisabledIcon.png">
+      <LogicalName>Toolbar.AntiAliasingDisabledIcon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.AntiAliasingEnabledIcon.png">
+      <LogicalName>Toolbar.AntiAliasingEnabledIcon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.BlendingEnabledIcon.png">
+      <LogicalName>Toolbar.BlendingEnabledIcon.png</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Toolbar.BlendingOverwriteIcon.png">
+      <LogicalName>Toolbar.BlendingOverwriteIcon.png</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

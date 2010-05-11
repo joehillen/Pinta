@@ -1,4 +1,4 @@
-// 
+//
 // CurvesDialog.cs
 //  
 // Author:
@@ -71,12 +71,17 @@ namespace Pinta
 			get { 
 				return (comboMap.Active == 0) ? 
 						ColorTransferMode.Rgb : 
-						ColorTransferMode.Luminosity; }
+						ColorTransferMode.Luminosity;
+			}
 		}
-				
-		public CurvesDialog ()
+
+		public CurvesData EffectData { get; private set; }
+		
+		public CurvesDialog (CurvesData effectData)
 		{
 			this.Build ();
+			
+			EffectData = effectData;
 		
 			drawing.DoubleBuffered = true;
 			
@@ -92,7 +97,16 @@ namespace Pinta
 			
 			ResetControlPoints ();
 		}
-
+		
+		private void UpdateLivePreview (string propertyName)
+		{
+			if (EffectData != null) {
+				EffectData.ControlPoints = ControlPoints;
+				EffectData.Mode = Mode;
+				EffectData.FirePropertyChanged (propertyName);
+			}
+		}		
+		
 		private void HandleCheckToggled (object o, EventArgs args)
 		{
 			InvalidateDrawing ();
@@ -116,12 +130,16 @@ namespace Pinta
 				list.Add (size - 1, size - 1);
 				ControlPoints [i] = list;
 			}
+			
+			UpdateLivePreview ("ControlPoints");
 		}
 		
 		private void HandleComboMapChanged (object sender, EventArgs e)
 		{
 			if (ControlPoints == null)
 				ResetControlPoints ();
+			else
+				UpdateLivePreview ("Mode");
 			
 			bool visible = (Mode == ColorTransferMode.Rgb);
 			checkRed.Visible = checkGreen.Visible = checkBlue.Visible = visible;
@@ -132,8 +150,7 @@ namespace Pinta
 		private void InvalidateDrawing ()
 		{
 			//to invalidate whole drawing area
-			drawing.GdkWindow.InvalidateRect 
-				(new Gdk.Rectangle (0, 0, size - 1, size - 1), true);		
+			drawing.GdkWindow.Invalidate();		
 		}
 		
 		private void HandleDrawingLeaveNotifyEvent (object o, Gtk.LeaveNotifyEventArgs args)
@@ -164,6 +181,8 @@ namespace Pinta
 			}
 			
 			last_cpx = x;
+			
+			UpdateLivePreview ("ControlPoints");
 		}
 		
 		private void HandleDrawingMotionNotifyEvent (object o, Gtk.MotionNotifyEventArgs args)
@@ -225,50 +244,50 @@ namespace Pinta
 			InvalidateDrawing();
 		}
 
-		private void DrawBorder (Context context)
+		private void DrawBorder (Context g)
 		{
-			context.Rectangle (0, 0, size - 1, size - 1);
-			context.LineWidth = 1;
-			context.Stroke ();
+			g.Rectangle (0, 0, size - 1, size - 1);
+			g.LineWidth = 1;
+			g.Stroke ();
 		}
 		
-		private void DrawPointerCross (Context context)
+		private void DrawPointerCross (Context g)
 		{
 			int x, y;
 			Gdk.ModifierType mask;
 			drawing.GdkWindow.GetPointer (out x, out y, out mask); 
 			
 			if (x >= 0 && x < size && y >= 0 && y < size) {
-				context.LineWidth = 0.5;
-				context.MoveTo (x, 0);
-				context.LineTo (x, size);
-				context.MoveTo (0, y);
-				context.LineTo (size , y);
-				context.Stroke ();
+				g.LineWidth = 0.5;
+				g.MoveTo (x, 0);
+				g.LineTo (x, size);
+				g.MoveTo (0, y);
+				g.LineTo (size , y);
+				g.Stroke ();
 				
 				this.labelPoint.Text = string.Format ("({0}, {1})", x, y);
 			} else
 				this.labelPoint.Text = string.Empty;
 		}
 		
-		private void DrawGrid (Context context)
+		private void DrawGrid (Context g)
 		{
-			context.Color = new Color (0.05, 0.05, 0.05);
-			context.SetDash (new double[] {4, 4}, 2);
-			context.LineWidth = 1;
+			g.Color = new Color (0.05, 0.05, 0.05);
+			g.SetDash (new double[] {4, 4}, 2);
+			g.LineWidth = 1;
 			
 			for (int i = 1; i < 4; i++) {
-				context.MoveTo (i * size / 4, 0);
-				context.LineTo (i * size / 4, size);
-				context.MoveTo (0, i * size / 4);
-				context.LineTo (size, i * size / 4);
+				g.MoveTo (i * size / 4, 0);
+				g.LineTo (i * size / 4, size);
+				g.MoveTo (0, i * size / 4);
+				g.LineTo (size, i * size / 4);
 			}
 			
-			context.MoveTo (0, size - 1);
-			context.LineTo (size - 1, 0);
-			context.Stroke ();
+			g.MoveTo (0, size - 1);
+			g.LineTo (size - 1, 0);
+			g.Stroke ();
 			
-			context.SetDash (new double[] {}, 0);
+			g.SetDash (new double[] {}, 0);
 		}
 		
 		//cpx, cpyx - control point's x and y coordinates
@@ -297,7 +316,7 @@ namespace Pinta
 			}
 		}
 		
-		private void DrawControlPoints (Context context)
+		private void DrawControlPoints (Context g)
 		{
 			int x, y;
 			Gdk.ModifierType mask;
@@ -318,24 +337,24 @@ namespace Pinta
 					if (info.IsActive)  {
 						if (CheckControlPointProximity (cpx, cpy, x, y)) {
 							rect = new Rectangle (cpx - (radius + 2) / 2, cpy - (radius + 2) / 2, radius + 2, radius + 2);
-							context.DrawEllipse (rect, new Color (0.2, 0.2, 0.2), 2);
+							g.DrawEllipse (rect, new Color (0.2, 0.2, 0.2), 2);
 							rect = new Rectangle (cpx - radius / 2, cpy - radius / 2, radius, radius);
-							context.FillEllipse (rect, new Color (0.9, 0.9, 0.9));
+							g.FillEllipse (rect, new Color (0.9, 0.9, 0.9));
 						} else {
 							rect = new Rectangle (cpx - radius / 2, cpy - radius / 2, radius, radius);
-							context.DrawEllipse (rect, info.Color, 2);
+							g.DrawEllipse (rect, info.Color, 2);
 						}
 					}
 					
 					rect = new Rectangle (cpx - (radius - 2) / 2, cpy - (radius - 2) / 2, radius - 2, radius -2);
-					context.FillEllipse (rect, info.Color);
+					g.FillEllipse (rect, info.Color);
 				}
 			}
 				
-			context.Stroke ();
+			g.Stroke ();
 		}
 			
-		private void DrawSpline (Context context)
+		private void DrawSpline (Context g)
 		{
 			var infos = GetDrawingInfos ();
 			
@@ -352,36 +371,36 @@ namespace Pinta
 				}
 				
 				for (int i = 0; i < line.Length; i++) {
-	                line[i].X = (float)i;
-	                line[i].Y = (float)(Utility.Clamp(size - 1 - interpolator.Interpolate (i), 0, size - 1));
+	               			line[i].X = (float)i;
+	                		line[i].Y = (float)(Utility.Clamp(size - 1 - interpolator.Interpolate (i), 0, size - 1));
 					
-	            }
+	            		}
 				
-				context.LineWidth = 2;
-				context.LineJoin = LineJoin.Round;
+				g.LineWidth = 2;
+				g.LineJoin = LineJoin.Round;
 				
-				context.MoveTo (line [0]);		
+				g.MoveTo (line [0]);		
 				for (int i = 1; i < line.Length; i++)
-					context.LineTo (line [i]);
+					g.LineTo (line [i]);
 				
 				infos.MoveNext ();
 				var info = infos.Current;
 					
-				context.Color = info.Color;
-				context.LineWidth = info.IsActive ? 2 : 1;
-				context.Stroke ();
+				g.Color = info.Color;
+				g.LineWidth = info.IsActive ? 2 : 1;
+				g.Stroke ();
 			}
 		}
 		
 		private void HandleDrawingExposeEvent (object o, Gtk.ExposeEventArgs args)
 		{	
-			using (Context context = Gdk.CairoHelper.Create (drawing.GdkWindow)) {
+			using (Context g = Gdk.CairoHelper.Create (drawing.GdkWindow)) {
 				
-				DrawBorder (context);
-				DrawPointerCross (context);
-				DrawSpline (context);
-				DrawGrid (context);
-				DrawControlPoints (context);
+				DrawBorder (g);
+				DrawPointerCross (g);
+				DrawSpline (g);
+				DrawGrid (g);
+				DrawControlPoints (g);
 			}
 		}
 	}

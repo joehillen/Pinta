@@ -26,6 +26,9 @@
 
 using System;
 using Pinta.Core;
+using Gtk;
+using Mono.Unix;
+
 
 namespace Pinta
 {
@@ -38,23 +41,87 @@ namespace Pinta
 			main_window = window;
 			
 			PintaCore.Actions.File.New.Activated += HandlePintaCoreActionsFileNewActivated;
+			
 			PintaCore.Actions.Image.Resize.Activated += HandlePintaCoreActionsImageResizeActivated;
 			PintaCore.Actions.Image.CanvasSize.Activated += HandlePintaCoreActionsImageCanvasSizeActivated;
+			
 			PintaCore.Actions.Layers.Properties.Activated += HandlePintaCoreActionsLayersPropertiesActivated;
-			PintaCore.Actions.Adjustments.BrightnessContrast.Activated += HandleAdjustmentsBrightnessContrastActivated;
-			PintaCore.Actions.Adjustments.Curves.Activated += HandleAdjustmentsCurvesActivated;
-			PintaCore.Actions.Adjustments.Posterize.Activated += HandleAdjustmentsPosterizeActivated;
-			PintaCore.Actions.Adjustments.HueSaturation.Activated += HandleAdjustmentsHueSaturationActivated;
-			PintaCore.Actions.Effects.InkSketch.Activated += HandleEffectInkSketchActivated;
-			PintaCore.Actions.Effects.OilPainting.Activated += HandleEffectOilPaintingActivated;
-			PintaCore.Actions.Effects.PencilSketch.Activated += HandleEffectPencilSketchActivated;
-			PintaCore.Actions.Effects.GaussianBlur.Activated += HandleEffectGaussianBlurActivated;
-			PintaCore.Actions.Effects.Glow.Activated += HandleEffectGlowActivated;
+			
+			PintaCore.Actions.Adjustments.BrightnessContrast.Activated += HandleEffectActivated<BrightnessContrastEffect>;
+			PintaCore.Actions.Adjustments.Curves.Activated += HandleEffectActivated <CurvesEffect>;
+			PintaCore.Actions.Adjustments.Levels.Activated += HandleEffectActivated <LevelsEffect>;
+			PintaCore.Actions.Adjustments.Posterize.Activated += HandleEffectActivated <PosterizeEffect>;
+			PintaCore.Actions.Adjustments.HueSaturation.Activated += HandleEffectActivated<HueSaturationEffect>;
+			
+			PintaCore.Actions.Effects.InkSketch.Activated += HandleEffectActivated<InkSketchEffect>;
+			PintaCore.Actions.Effects.OilPainting.Activated += HandleEffectActivated<OilPaintingEffect>;
+			PintaCore.Actions.Effects.PencilSketch.Activated += HandleEffectActivated<PencilSketchEffect>;
+			PintaCore.Actions.Effects.Fragment.Activated += HandleEffectActivated<FragmentEffect>;
+			PintaCore.Actions.Effects.GaussianBlur.Activated += HandleEffectActivated<GaussianBlurEffect>;
+			PintaCore.Actions.Effects.ZoomBlur.Activated += HandleEffectActivated<ZoomBlurEffect>;
+			PintaCore.Actions.Effects.Unfocus.Activated += HandleEffectActivated<UnfocusEffect>;
+			PintaCore.Actions.Effects.RadialBlur.Activated += HandleEffectActivated<RadialBlurEffect>;
+			PintaCore.Actions.Effects.Bulge.Activated += HandleEffectActivated <BulgeEffect>;
+			PintaCore.Actions.Effects.PolarInversion.Activated += HandleEffectActivated <PolarInversionEffect>;
+			PintaCore.Actions.Effects.MotionBlur.Activated += HandleEffectActivated <MotionBlurEffect>;
+			PintaCore.Actions.Effects.Glow.Activated += HandleEffectActivated <GlowEffect>;
+			PintaCore.Actions.Effects.RedEyeRemove.Activated += HandleEffectActivated <RedEyeRemoveEffect>;
+			PintaCore.Actions.Effects.Sharpen.Activated += HandleEffectActivated <SharpenEffect>;
+			PintaCore.Actions.Effects.SoftenPortrait.Activated += HandleEffectActivated <SoftenPortraitEffect>;
+			PintaCore.Actions.Effects.Clouds.Activated += HandleEffectActivated<CloudsEffect>;
+			PintaCore.Actions.Effects.JuliaFractal.Activated += HandleEffectActivated<JuliaFractalEffect>;
+			PintaCore.Actions.Effects.MandelbrotFractal.Activated += HandleEffectActivated<MandelbrotFractalEffect>;
+			PintaCore.Actions.Effects.EdgeDetect.Activated += HandleEffectActivated <EdgeDetectEffect>;
+			PintaCore.Actions.Effects.Twist.Activated += HandleEffectActivated<TwistEffect>;
+			PintaCore.Actions.Effects.Tile.Activated += HandleEffectActivated<TileEffect>;
+			PintaCore.Actions.Effects.Pixelate.Activated += HandleEffectActivated<PixelateEffect>;
+			PintaCore.Actions.Effects.FrostedGlass.Activated += HandleEffectActivated<FrostedGlassEffect>;
+			PintaCore.Actions.Effects.Relief.Activated += HandleEffectActivated <ReliefEffect>;
+			PintaCore.Actions.Effects.Emboss.Activated += HandleEffectActivated<EmbossEffect>;
+			PintaCore.Actions.Effects.AddNoise.Activated += HandleEffectActivated<AddNoiseEffect>;
+			PintaCore.Actions.Effects.Median.Activated += HandleEffectActivated<MedianEffect>;
+			PintaCore.Actions.Effects.ReduceNoise.Activated += HandleEffectActivated<ReduceNoiseEffect>;
+			PintaCore.Actions.Effects.Outline.Activated += HandleEffectActivated<OutlineEffect>;
 		}
 
 		#region Handlers
 		private void HandlePintaCoreActionsFileNewActivated (object sender, EventArgs e)
 		{
+			bool canceled = false;
+
+			if (PintaCore.Workspace.IsDirty) {
+				var primary = Catalog.GetString ("Save the changes to image \"{0}\" before creating a new one?");
+				var secondary = Catalog.GetString ("If you don't save, all changes will be permanently lost.");
+				var markup = "<span weight=\"bold\" size=\"larger\">{0}</span>\n\n{1}\n";
+				markup = string.Format (markup, primary, secondary);
+
+				var md = new MessageDialog (PintaCore.Chrome.MainWindow, DialogFlags.Modal,
+				                            MessageType.Question, ButtonsType.None, true,
+				                            markup,
+				                            System.IO.Path.GetFileName (PintaCore.Workspace.Filename));
+
+				md.AddButton (Catalog.GetString ("Continue without saving"), ResponseType.No);
+				md.AddButton (Stock.Cancel, ResponseType.Cancel);
+				md.AddButton (Stock.Save, ResponseType.Yes);
+
+				md.DefaultResponse = ResponseType.Cancel;
+
+				ResponseType saveResponse = (ResponseType)md.Run ();
+				md.Destroy ();
+
+				if (saveResponse == ResponseType.Yes) {
+					PintaCore.Actions.File.Save.Activate ();
+				}
+				else {
+					canceled = saveResponse == ResponseType.Cancel;
+				}
+			}
+
+			if (canceled) {
+				return;
+			}
+
+
 			NewImageDialog dialog = new NewImageDialog ();
 
 			dialog.ParentWindow = main_window.GdkWindow;
@@ -63,8 +130,9 @@ namespace Pinta
 			int response = dialog.Run ();
 
 			if (response == (int)Gtk.ResponseType.Ok) {
-				PintaCore.Workspace.ImageSize = new Cairo.Point (dialog.NewImageWidth, dialog.NewImageHeight);
-				PintaCore.Workspace.CanvasSize = new Cairo.Point (dialog.NewImageWidth, dialog.NewImageHeight);
+				PintaCore.Workspace.ActiveDocument.HasFile = false;
+				PintaCore.Workspace.ImageSize = new Gdk.Size (dialog.NewImageWidth, dialog.NewImageHeight);
+				PintaCore.Workspace.CanvasSize = new Gdk.Size (dialog.NewImageWidth, dialog.NewImageHeight);
 				
 				PintaCore.Layers.Clear ();
 				PintaCore.History.Clear ();
@@ -80,6 +148,7 @@ namespace Pinta
 				}
 
 				PintaCore.Workspace.Filename = "Untitled1";
+				PintaCore.History.PushNewItem (new BaseHistoryItem ("gtk-new", "New Image"));
 				PintaCore.Workspace.IsDirty = false;
 				PintaCore.Actions.View.ZoomToWindow.Activate ();
 			}
@@ -158,6 +227,7 @@ namespace Pinta
 			LayerProperties initial,
 			LayerProperties updated)
 		{
+
 			string ret = null;
 			int count = 0;
 			
@@ -167,12 +237,12 @@ namespace Pinta
 			}
 				
 			if (updated.Name != initial.Name) {
-				ret = "Layer Renamed";
+				ret = "Rename Layer";
 				count++;
 			}
 			
 			if (updated.Hidden != initial.Hidden) {
-				ret = (updated.Hidden) ? "Layer Hidden" : "Layer Shown";
+				ret = (updated.Hidden) ? "Hide Layer" : "Show Layer";
 				count++;
 			}
 			
@@ -182,49 +252,11 @@ namespace Pinta
 			return ret;
 		}		
 		
-		private void HandleAdjustmentsHueSaturationActivated (object sender, EventArgs e)
+		private void HandleEffectActivated<T> (object sender, EventArgs e)
+			where T : BaseEffect, new ()
 		{
-			PintaCore.Actions.Adjustments.PerformEffect (new HueSaturationEffect ());
-		}
-		
-		private void HandleAdjustmentsBrightnessContrastActivated (object sender, EventArgs e)
-		{
-			PintaCore.Actions.Adjustments.PerformEffect (new BrightnessContrastEffect ());
-		}
-		
-		private void HandleAdjustmentsPosterizeActivated (object sender, EventArgs e)
-		{
-			PintaCore.Actions.Adjustments.PerformEffect (new PosterizeEffect ());
-		}
-		
-		private void HandleAdjustmentsCurvesActivated (object sender, EventArgs e)
-		{
-			PintaCore.Actions.Adjustments.PerformEffect (new CurvesEffect ());	
-		}
-
-		private void HandleEffectInkSketchActivated (object sender, EventArgs e)
-		{
-			PintaCore.Actions.Adjustments.PerformEffect (new InkSketchEffect ());
-		}
-
-		private void HandleEffectOilPaintingActivated (object sender, EventArgs e)
-		{
-			PintaCore.Actions.Adjustments.PerformEffect (new OilPaintingEffect ());
-		}
-
-		private void HandleEffectPencilSketchActivated (object sender, EventArgs e)
-		{
-			PintaCore.Actions.Adjustments.PerformEffect (new PencilSketchEffect ());
-		}
-
-		private void HandleEffectGaussianBlurActivated (object sender, EventArgs e)
-		{
-			PintaCore.Actions.Adjustments.PerformEffect (new GaussianBlurEffect ());
-		}
-
-		private void HandleEffectGlowActivated (object sender, EventArgs e)
-		{
-			PintaCore.Actions.Adjustments.PerformEffect (new GlowEffect ());
+			var effect = new T ();
+			PintaCore.LivePreview.Start (effect);
 		}
 		#endregion
 	}

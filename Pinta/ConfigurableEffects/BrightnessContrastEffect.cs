@@ -1,28 +1,11 @@
-// 
-// BrightnessContrastEffect.cs
-//  
-// Author:
-//       Krzysztof Marecki <marecki.krzysztof@gmail.com>
-// 
-// Copyright (c) 2010 Jonathan Pobst
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+/////////////////////////////////////////////////////////////////////////////////
+// Paint.NET                                                                   //
+// Copyright (C) dotPDN LLC, Rick Brewster, Tom Jackson, and contributors.     //
+// Portions Copyright (C) Microsoft Corporation. All Rights Reserved.          //
+// See license-pdn.txt for full licensing and attribution details.             //
+//                                                                             //
+// Ported to Pinta by: Krzysztof Marecki <marecki.krzysztof@gmail.com>         //
+/////////////////////////////////////////////////////////////////////////////////
 
 using System;
 using Cairo;
@@ -48,64 +31,52 @@ namespace Pinta.Core
 			get { return true; }
 		}
 
-		public BrightnessContrastData Data { get; private set; }
+		public BrightnessContrastData Data { get { return EffectData as BrightnessContrastData; } }
 		
 		public BrightnessContrastEffect ()
 		{
-			Data = new BrightnessContrastData ();
+			EffectData = new BrightnessContrastData ();
 		}
 		
 		public override bool LaunchConfiguration ()
 		{
-			Data = new BrightnessContrastData ();
-			SimpleEffectDialog dialog = new SimpleEffectDialog (Text, PintaCore.Resources.GetIcon (Icon), Data);
-			
-			int response = dialog.Run ();
-
-			if (response == (int)Gtk.ResponseType.Ok) {
-				dialog.Destroy ();
-				
-				// Don't trigger anything if no options were changed
-				return !Data.IsDefault;
-			}
-
-			dialog.Destroy ();
-
-			return false;
+			return EffectHelper.LaunchSimpleEffectDialog (this);
 		}
 
 		public unsafe override void RenderEffect (ImageSurface src, ImageSurface dest, Gdk.Rectangle[] rois)
 		{
 			Calculate ();
 
-			for (int y = 0; y < src.Height; y++) {
-				ColorBgra* srcRowPtr = src.GetPointAddressUnchecked (0, y);
-				ColorBgra* dstRowPtr = dest.GetPointAddressUnchecked (0, y);
-				ColorBgra* dstRowEndPtr = dstRowPtr + dest.Width;
+			foreach (Gdk.Rectangle rect in rois) {
+				for (int y = rect.Top; y < rect.Bottom; y++) {
+					ColorBgra* srcRowPtr = src.GetPointAddressUnchecked (rect.Left, y);
+					ColorBgra* dstRowPtr = dest.GetPointAddressUnchecked (rect.Left, y);
+					ColorBgra* dstRowEndPtr = dstRowPtr + rect.Width;
 
-				if (divide == 0) {
-					while (dstRowPtr < dstRowEndPtr) {
-						ColorBgra col = *srcRowPtr;
-						int i = col.GetIntensityByte ();
-						uint c = rgbTable[i];
-						dstRowPtr->Bgra = (col.Bgra & 0xff000000) | c | (c << 8) | (c << 16);
+					if (divide == 0) {
+						while (dstRowPtr < dstRowEndPtr) {
+							ColorBgra col = *srcRowPtr;
+							int i = col.GetIntensityByte ();
+							uint c = rgbTable[i];
+							dstRowPtr->Bgra = (col.Bgra & 0xff000000) | c | (c << 8) | (c << 16);
 
-						++dstRowPtr;
-						++srcRowPtr;
-					}
-				} else {
-					while (dstRowPtr < dstRowEndPtr) {
-						ColorBgra col = *srcRowPtr;
-						int i = col.GetIntensityByte ();
-						int shiftIndex = i * 256;
+							++dstRowPtr;
+							++srcRowPtr;
+						}
+					} else {
+						while (dstRowPtr < dstRowEndPtr) {
+							ColorBgra col = *srcRowPtr;
+							int i = col.GetIntensityByte ();
+							int shiftIndex = i * 256;
 
-						col.R = rgbTable[shiftIndex + col.R];
-						col.G = rgbTable[shiftIndex + col.G];
-						col.B = rgbTable[shiftIndex + col.B];
+							col.R = rgbTable[shiftIndex + col.R];
+							col.G = rgbTable[shiftIndex + col.G];
+							col.B = rgbTable[shiftIndex + col.B];
 
-						*dstRowPtr = col;
-						++dstRowPtr;
-						++srcRowPtr;
+							*dstRowPtr = col;
+							++dstRowPtr;
+							++srcRowPtr;
+						}
 					}
 				}
 			}
@@ -155,13 +126,13 @@ namespace Pinta.Core
 			}
 		}
 		
-		public class BrightnessContrastData
+		public class BrightnessContrastData : EffectData
 		{
 			public int Brightness = 0;
 			public int Contrast = 0;
 			
 			[Skip]
-			public bool IsDefault {
+			public override bool IsDefault {
 				get { return Brightness == 0 && Contrast == 0; }
 			}
 		}

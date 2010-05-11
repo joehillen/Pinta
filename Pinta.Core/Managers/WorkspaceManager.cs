@@ -29,18 +29,48 @@ using Cairo;
 
 namespace Pinta.Core
 {
+	public class Document
+	{
+		public Document () {
+			IsDirty = false;
+			HasFile = false;
+		}
+
+		public bool HasFile { get; set; }
+
+		private string pathname;
+
+		public string Pathname {
+			get { return (pathname != null) ? pathname : string.Empty; }
+			set { pathname = value; }
+		}
+
+		public string Filename {
+			get {
+				return System.IO.Path.GetFileName (Pathname);
+			}
+
+			set {
+				if (value != null) {
+					Pathname = System.IO.Path.Combine (Pathname, value);
+				}
+			}
+		}
+
+		public bool IsDirty { get; set; }
+	}
+
+
 	public class WorkspaceManager
 	{
-		private string filename;
-		private bool is_dirty;
-		private Point canvas_size;
+		private Gdk.Size canvas_size;
 		
-		public Point ImageSize { get; set; }
-		
-		public Point CanvasSize {
+		public Gdk.Size ImageSize { get; set; }
+
+		public Gdk.Size CanvasSize {
 			get { return canvas_size; }
 			set {
-				if (canvas_size.X != value.X || canvas_size.Y != value.Y) {
+				if (canvas_size.Width != value.Width || canvas_size.Height != value.Height) {
 					canvas_size = value;
 					OnCanvasSizeChanged ();
 				}
@@ -48,23 +78,26 @@ namespace Pinta.Core
 		}
 		
 		public PointD Offset {
-			get { return new PointD ((PintaCore.Chrome.DrawingArea.Allocation.Width - canvas_size.X) / 2, (PintaCore.Chrome.DrawingArea.Allocation.Height - CanvasSize.Y) / 2); }
+			get { return new PointD ((PintaCore.Chrome.DrawingArea.Allocation.Width - canvas_size.Width) / 2, (PintaCore.Chrome.DrawingArea.Allocation.Height - CanvasSize.Height) / 2); }
 		}
-
+		
+		public Document Document { get; set; }
+		
 		public WorkspaceManager ()
 		{
-			CanvasSize = new Point (800, 600);
-			ImageSize = new Point (800, 600);
+			ActiveDocument = Document = new Document ();
+			CanvasSize = new Gdk.Size (800, 600);
+			ImageSize = new Gdk.Size (800, 600);
 		}
 		
 		public double Scale {
-			get { return (double)CanvasSize.X / (double)ImageSize.X; }
+			get { return (double)CanvasSize.Width / (double)ImageSize.Width; }
 			set {
 				if (Scale != value) {
-					int new_x = (int)(ImageSize.X * value);
-					int new_y = (int)((new_x * ImageSize.Y) / ImageSize.X);
+					int new_x = (int)(ImageSize.Width * value);
+					int new_y = (int)((new_x * ImageSize.Height) / ImageSize.Width);
 
-					CanvasSize = new Point (new_x, new_y);
+					CanvasSize = new Gdk.Size (new_x, new_y);
 					Invalidate ();
 				}
 			}
@@ -130,10 +163,10 @@ namespace Pinta.Core
 		{
 			double ratio;
 			
-			if (ImageSize.X / rect.Width <= ImageSize.Y / rect.Height)
-				ratio = ImageSize.X / rect.Width;
+			if (ImageSize.Width / rect.Width <= ImageSize.Height / rect.Height)
+				ratio = ImageSize.Width / rect.Width;
 			else
-				ratio = ImageSize.Y / rect.Height;
+				ratio = ImageSize.Height / rect.Height;
 			
 			(PintaCore.Actions.View.ZoomComboBox.ComboBox as Gtk.ComboBoxEntry).Entry.Text = String.Format ("{0:F}%", ratio * 100.0);
 			Gtk.Main.Iteration (); //Force update of scrollbar upper before recenter
@@ -150,16 +183,16 @@ namespace Pinta.Core
 		
 		public void ResizeImage (int width, int height)
 		{
-			if (ImageSize.X == width && ImageSize.Y == height)
+			if (ImageSize.Width == width && ImageSize.Height == height)
 				return;
 				
 			PintaCore.Layers.FinishSelection ();
 			
-			ResizeHistoryItem hist = new ResizeHistoryItem (ImageSize.X, ImageSize.Y);
+			ResizeHistoryItem hist = new ResizeHistoryItem (ImageSize.Width, ImageSize.Height);
 			hist.TakeSnapshotOfImage ();
-			
-			ImageSize = new Point (width, height);
-			CanvasSize = new Point (width, height);
+
+			ImageSize = new Gdk.Size (width, height);
+			CanvasSize = new Gdk.Size (width, height);
 			
 			foreach (var layer in PintaCore.Layers)
 				layer.Resize (width, height);
@@ -172,18 +205,18 @@ namespace Pinta.Core
 		
 		public void ResizeCanvas (int width, int height, Anchor anchor)
 		{
-			if (ImageSize.X == width && ImageSize.Y == height)
+			if (ImageSize.Width == width && ImageSize.Height == height)
 				return;
 
 			PintaCore.Layers.FinishSelection ();
 
-			ResizeHistoryItem hist = new ResizeHistoryItem (ImageSize.X, ImageSize.Y);
+			ResizeHistoryItem hist = new ResizeHistoryItem (ImageSize.Width, ImageSize.Height);
 			hist.Icon = "Menu.Image.CanvasSize.png";
 			hist.Text = "Resize Canvas";
 			hist.TakeSnapshotOfImage ();
 
-			ImageSize = new Point (width, height);
-			CanvasSize = new Point (width, height);
+			ImageSize = new Gdk.Size (width, height);
+			CanvasSize = new Gdk.Size (width, height);
 
 			foreach (var layer in PintaCore.Layers)
 				layer.ResizeCanvas (width, height, anchor);
@@ -204,7 +237,7 @@ namespace Pinta.Core
 			if (point.X < 0 || point.Y < 0)
 				return false;
 
-			if (point.X >= PintaCore.Workspace.ImageSize.X || point.Y >= PintaCore.Workspace.ImageSize.Y)
+			if (point.X >= PintaCore.Workspace.ImageSize.Width || point.Y >= PintaCore.Workspace.ImageSize.Height)
 				return false;
 
 			return true;
@@ -212,29 +245,36 @@ namespace Pinta.Core
 
 		public Gdk.Rectangle ClampToImageSize (Gdk.Rectangle r)
 		{
-			int x = Utility.Clamp (r.X, 0, ImageSize.X);
-			int y = Utility.Clamp (r.Y, 0, ImageSize.Y);
-			int width = Math.Min (r.Width, ImageSize.X - x);
-			int height = Math.Min (r.Height, ImageSize.Y - y);
+			int x = Utility.Clamp (r.X, 0, ImageSize.Width);
+			int y = Utility.Clamp (r.Y, 0, ImageSize.Height);
+			int width = Math.Min (r.Width, ImageSize.Width - x);
+			int height = Math.Min (r.Height, ImageSize.Height - y);
 
 			return new Gdk.Rectangle (x, y, width, height);
 		}
-		
+
+		public Document ActiveDocument { get; set; }
+
+		public string DocumentPath {
+			get { return Document.Pathname; }
+			set { Document.Pathname = value; }
+		}
+
 		public string Filename {
-			get { return filename; }
+			get { return Document.Filename; }
 			set {
-				if (filename != value) {
-					filename = value;
+				if (Document.Filename != value) {
+					Document.Filename = value;
 					ResetTitle ();
 				}
 			}
 		}
 		
 		public bool IsDirty {
-			get { return is_dirty; }
+			get { return Document.IsDirty; }
 			set {
-				if (is_dirty != value) {
-					is_dirty = value;
+				if (Document.IsDirty != value) {
+					Document.IsDirty = value;
 					ResetTitle ();
 				}
 			}
@@ -247,7 +287,7 @@ namespace Pinta.Core
 				int window_x = view.Allocation.Width;
 				int window_y = view.Children[0].Allocation.Height;
 
-				if (CanvasSize.X <= window_x && CanvasSize.Y <= window_y)
+				if (CanvasSize.Width <= window_x && CanvasSize.Height <= window_y)
 					return true;
 
 				return false;
@@ -261,7 +301,7 @@ namespace Pinta.Core
 				int window_x = view.Allocation.Width;
 				int window_y = view.Children[0].Allocation.Height;
 
-				if (ImageSize.X <= window_x && ImageSize.Y <= window_y)
+				if (ImageSize.Width <= window_x && ImageSize.Height <= window_y)
 					return true;
 
 				return false;
@@ -278,7 +318,7 @@ namespace Pinta.Core
 		
 		private void ResetTitle ()
 		{
-			PintaCore.Chrome.MainWindow.Title = string.Format ("{0}{1} - Pinta", filename, is_dirty ? "*" : "");
+			PintaCore.Chrome.MainWindow.Title = string.Format ("{0}{1} - Pinta", Filename, IsDirty ? "*" : "");
 		}
 
 		#region Protected Methods
@@ -299,5 +339,6 @@ namespace Pinta.Core
 		public event EventHandler<CanvasInvalidatedEventArgs> CanvasInvalidated;
 		public event EventHandler CanvasSizeChanged;
 		#endregion
+		
 	}
 }

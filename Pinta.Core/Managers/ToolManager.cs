@@ -111,12 +111,43 @@ namespace Pinta.Core
 			PintaCore.Chrome.SetStatusBarText (string.Format (" {0}: {1}", tool.Name, tool.StatusBarText));
 		}
 
-		public void SetCurrentTool (string tool)
+		public bool SetCurrentTool (string tool)
 		{
 			BaseTool t = FindTool (tool);
 			
-			if (t != null)
+			if (t != null) {
 				SetCurrentTool (t);
+				return true;
+			}
+			
+			return false;
+		}
+		
+		public void SetCurrentTool (Gdk.Key shortcut)
+		{
+			BaseTool tool = FindNextTool (shortcut);
+			
+			if (tool != null)
+				SetCurrentTool (tool);
+		}
+		
+		private BaseTool FindNextTool (Gdk.Key shortcut)
+		{
+			string key = shortcut.ToString ().ToUpperInvariant ();
+			
+			// Begin looking at the tool after the current one
+			for (int i = index + 1; i < Tools.Count; i++) {
+				if (Tools[i].ShortcutKey.ToString ().ToUpperInvariant () == key)
+					return Tools[i];
+			}
+				
+			// Begin at the beginning and look up to the current tool
+			for (int i = 0; i < index; i++) {
+				if (Tools[i].ShortcutKey.ToString ().ToUpperInvariant () == key)
+					return Tools[i];
+			}
+			
+			return null;
 		}
 		
 		#region IEnumerable<BaseTool> implementation

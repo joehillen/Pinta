@@ -43,6 +43,8 @@ namespace Pinta
 
 		[ImportMany]
 		public IEnumerable<BaseTool> Tools { get; set; }
+		[ImportMany]
+		public IEnumerable<BaseEffect> Effects { get; set; }
 
 		public MainWindow () : base(Gtk.WindowType.Toplevel)
 		{
@@ -50,78 +52,33 @@ namespace Pinta
 			Build ();
 			
 			// Initialize interface things
-			PintaCore.Actions.AccelGroup = new AccelGroup ();
 			this.AddAccelGroup (PintaCore.Actions.AccelGroup);
 			
 			progress_dialog = new ProgressDialog ();
 			
-			PintaCore.Initialize (tooltoolbar, label5, drawingarea1, history_treeview, this, progress_dialog);
+			PintaCore.Initialize (tooltoolbar, drawingarea1, this, progress_dialog);
 			colorpalettewidget1.Initialize ();
 			
 			Compose ();
-			
-			PintaCore.Chrome.StatusBarTextChanged += new EventHandler<TextChangedEventArgs> (Chrome_StatusBarTextChanged);
-			CreateToolBox ();
 			
 			PintaCore.Actions.CreateMainMenu (menubar1);
 			PintaCore.Actions.CreateToolBar (toolbar1);
 			PintaCore.Actions.Layers.CreateLayerWindowToolBar (toolbar4);
 			PintaCore.Actions.Edit.CreateHistoryWindowToolBar (toolbar2);
 			
-			Gtk.Image i = new Gtk.Image (PintaCore.Resources.GetIcon ("StatusBar.CursorXY.png"));
-			i.Show ();
-			
-			statusbar1.Add (i);
-			Gtk.Box.BoxChild box = (Gtk.Box.BoxChild)statusbar1[i];
-			box.Position = 2;
-			box.Fill = false;
-			box.Expand = false;
+			CreateToolBox ();
+			LoadEffects ();
+			CreateStatusBar ();
 			
 			this.Icon = PintaCore.Resources.GetIcon ("Pinta.png");
 			
 			dialog_handler = new DialogHandlers (this);
+			PintaCore.Actions.View.ZoomToWindow.Activated += new EventHandler (ZoomToWindow_Activated);
 			
 			// Create a blank document
-			Layer background = PintaCore.Layers.AddNewLayer ("Background");
+			PintaCore.Actions.File.NewFile (new Size (800, 600));
 			
-			using (Cairo.Context g = new Cairo.Context (background.Surface)) {
-				g.SetSourceRGB (255, 255, 255);
-				g.Paint ();
-			}
-			
-			PintaCore.Workspace.Filename = "Untitled1";
-			PintaCore.History.PushNewItem (new BaseHistoryItem ("gtk-new", "New Image"));
-			PintaCore.Workspace.IsDirty = false;
-			PintaCore.Workspace.Invalidate ();
-			
-			//History
-			history_treeview.Model = PintaCore.History.ListStore;
-			history_treeview.HeadersVisible = false;
-			history_treeview.Selection.Mode = SelectionMode.Single;
-			history_treeview.Selection.SelectFunction = HistoryItemSelected;
-			
-			Gtk.TreeViewColumn icon_column = new Gtk.TreeViewColumn ();
-			Gtk.CellRendererPixbuf icon_cell = new Gtk.CellRendererPixbuf ();
-			icon_column.PackStart (icon_cell, true);
-			
-			Gtk.TreeViewColumn text_column = new Gtk.TreeViewColumn ();
-			Gtk.CellRendererText text_cell = new Gtk.CellRendererText ();
-			text_column.PackStart (text_cell, true);
-			
-			text_column.SetCellDataFunc (text_cell, new Gtk.TreeCellDataFunc (HistoryRenderText));
-			icon_column.SetCellDataFunc (icon_cell, new Gtk.TreeCellDataFunc (HistoryRenderIcon));
-			
-			history_treeview.AppendColumn (icon_column);
-			history_treeview.AppendColumn (text_column);
-			
-			PintaCore.History.HistoryItemAdded += new EventHandler<HistoryItemAddedEventArgs> (OnHistoryItemsChanged);
-			PintaCore.History.ActionUndone += new EventHandler (OnHistoryItemsChanged);
-			PintaCore.History.ActionRedone += new EventHandler (OnHistoryItemsChanged);
-			
-			PintaCore.Actions.View.ZoomToWindow.Activated += new EventHandler (ZoomToWindow_Activated);
 			DeleteEvent += new DeleteEventHandler (MainWindow_DeleteEvent);
-			
-			PintaCore.LivePreview.RenderUpdated += LivePreview_RenderUpdated;
 			
 			WindowAction.Visible = false;
 			
@@ -198,57 +155,6 @@ namespace Pinta
 			}
 		}
 
-		private void Chrome_StatusBarTextChanged (object sender, TextChangedEventArgs e)
-		{
-			label5.Text = e.Text;
-		}
-
-		#region History
-		public bool HistoryItemSelected (TreeSelection selection, TreeModel model, TreePath path, bool path_currently_selected)
-		{
-			int current = path.Indices[0];
-			if (!path_currently_selected) {
-				while (PintaCore.History.Pointer < current) {
-					PintaCore.History.Redo ();
-				}
-				while (PintaCore.History.Pointer > current) {
-					PintaCore.History.Undo ();
-				}
-			}
-			return true;
-		}
-
-		private void HistoryRenderText (Gtk.TreeViewColumn column, Gtk.CellRenderer cell, Gtk.TreeModel model, Gtk.TreeIter iter)
-		{
-			BaseHistoryItem item = (BaseHistoryItem)model.GetValue (iter, 0);
-			if (item.State == HistoryItemState.Undo) {
-				(cell as Gtk.CellRendererText).Style = Pango.Style.Normal;
-				(cell as Gtk.CellRendererText).Foreground = "black";
-				(cell as Gtk.CellRendererText).Text = item.Text;
-			} else if (item.State == HistoryItemState.Redo) {
-				(cell as Gtk.CellRendererText).Style = Pango.Style.Oblique;
-				(cell as Gtk.CellRendererText).Foreground = "gray";
-				(cell as Gtk.CellRendererText).Text = item.Text;
-			}
-			
-		}
-
-		private void HistoryRenderIcon (Gtk.TreeViewColumn column, Gtk.CellRenderer cell, Gtk.TreeModel model, Gtk.TreeIter iter)
-		{
-			BaseHistoryItem item = (BaseHistoryItem)model.GetValue (iter, 0);
-			(cell as Gtk.CellRendererPixbuf).Pixbuf = PintaCore.Resources.GetIcon (item.Icon);
-		}
-
-		private void OnHistoryItemsChanged (object o, EventArgs args)
-		{
-			if (PintaCore.History.Current != null) {
-				history_treeview.Selection.SelectIter (PintaCore.History.Current.Id);
-				history_treeview.ScrollToCell (history_treeview.Model.GetPath (PintaCore.History.Current.Id), history_treeview.Columns[1], true, (float)0.9, 0);
-			}
-			
-		}
-		#endregion
-
 		private void CreateToolBox ()
 		{
 			// Create our tools
@@ -272,56 +178,55 @@ namespace Pinta
 			}
 		}
 
-		void LivePreview_RenderUpdated (object o, LivePreviewRenderUpdatedEventArgs args)
+		private void LoadEffects ()
 		{
-			double scale = PintaCore.Workspace.Scale;
-			var offset = PintaCore.Workspace.Offset;
-			
-			var bounds = args.Bounds;
-			
-			// Transform bounds (Image -> Canvas -> Window)
-			
-			// Calculate canvas bounds.
-			double x1 = bounds.Left * scale;
-			double y1 = bounds.Top * scale;
-			double x2 = bounds.Right * scale;
-			double y2 = bounds.Bottom * scale;
-			
-			// TODO Figure out why when scale > 1 that I need add on an
-			// extra pixel of padding.
-			// I must being doing something wrong here.
-			if (scale > 1.0) {
-				//x1 = (bounds.Left-1) * scale;
-				y1 = (bounds.Top - 1) * scale;
-				//x2 = (bounds.Right+1) * scale;
-				//y2 = (bounds.Bottom+1) * scale;
-			}
-			
-			// Calculate window bounds.
-			x1 += offset.X;
-			y1 += offset.Y;
-			x2 += offset.X;
-			y2 += offset.Y;
-			
-			// Convert to integer, carefull not to miss paritally covered
-			// pixels by rounding incorrectly.
-			int x = (int)Math.Floor (x1);
-			int y = (int)Math.Floor (y1);
-			int width = (int)Math.Ceiling (x2) - x;
-			int height = (int)Math.Ceiling (y2) - y;
-			
-			// Tell GTK to expose the drawing area.			
-			drawingarea1.QueueDrawArea (x, y, width, height);
-		}
+			// Load our adjustments
+			foreach (BaseEffect effect in Effects.Where (t => t.EffectOrAdjustment == EffectAdjustment.Adjustment).OrderBy (t => t.Text)) {
+				// Add icon to IconFactory
+				Gtk.IconFactory fact = new Gtk.IconFactory ();
+				fact.Add (effect.Icon, new Gtk.IconSet (PintaCore.Resources.GetIcon (effect.Icon)));
+				fact.AddDefault ();
 
-		#region Drawing Area
-		private void OnDrawingarea1MotionNotifyEvent (object o, Gtk.MotionNotifyEventArgs args)
-		{
-			Cairo.PointD point = PintaCore.Workspace.WindowPointToCanvas (args.Event.X, args.Event.Y);
-			
-			if (PintaCore.Workspace.PointInCanvas (point))
-				CursorPositionLabel.Text = string.Format ("{0}, {1}", (int)point.X, (int)point.Y);
+				// Create a gtk action for each adjustment
+				Gtk.Action act = new Gtk.Action (effect.GetType ().Name, effect.Text, string.Empty, effect.Icon);
+				PintaCore.Actions.Adjustments.Actions.Add (act);
+				act.Activated += delegate (object sender, EventArgs e) { PintaCore.LivePreview.Start (Effects.Where (t => t.GetType ().Name == (sender as Gtk.Action).Name).First ()); };
+				
+				// Create a menu item for each adjustment
+				((Menu)((ImageMenuItem)menubar1.Children[5]).Submenu).Append (act.CreateAcceleratedMenuItem (effect.AdjustmentMenuKey, effect.AdjustmentMenuKeyModifiers));
+			}
+
+			// Load our effects
+			foreach (BaseEffect effect in Effects.Where (t => t.EffectOrAdjustment == EffectAdjustment.Effect).OrderBy (t => string.Format ("{0}|{1}", t.EffectMenuCategory, t.Text))) {
+				// Add icon to IconFactory
+				Gtk.IconFactory fact = new Gtk.IconFactory ();
+				fact.Add (effect.Icon, new Gtk.IconSet (PintaCore.Resources.GetIcon (effect.Icon)));
+				fact.AddDefault ();
+
+				// Create a gtk action and menu item for each effect
+				Gtk.Action act = new Gtk.Action (effect.GetType ().Name, effect.Text, string.Empty, effect.Icon);
+				PintaCore.Actions.Effects.AddEffect (effect.EffectMenuCategory, act);
+				act.Activated += delegate (object sender, EventArgs e) { PintaCore.LivePreview.Start (Effects.Where (t => t.GetType ().Name == (sender as Gtk.Action).Name).First ()); };
+			}
 		}
-		#endregion
+		
+		private void CreateStatusBar ()
+		{
+			Gtk.Image i = new Gtk.Image (PintaCore.Resources.GetIcon ("StatusBar.CursorXY.png"));
+			i.Show ();
+
+			statusbar1.Add (i);
+			Gtk.Box.BoxChild box = (Gtk.Box.BoxChild)statusbar1[i];
+			box.Position = 2;
+			box.Fill = false;
+			box.Expand = false;
+
+			PintaCore.Chrome.StatusBarTextChanged += delegate (object sender, TextChangedEventArgs e) { label5.Text = e.Text; };
+
+			PintaCore.Chrome.LastCanvasCursorPointChanged += delegate {
+				Point pt = PintaCore.Chrome.LastCanvasCursorPoint;
+				CursorPositionLabel.Text = string.Format ("{0}, {1}", pt.X, pt.Y);
+			};
+		}
 	}
 }

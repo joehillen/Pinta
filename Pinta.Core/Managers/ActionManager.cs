@@ -31,7 +31,7 @@ namespace Pinta.Core
 {
 	public class ActionManager
 	{
-		public AccelGroup AccelGroup { get; set; }
+		public AccelGroup AccelGroup { get; private set; }
 		
 		public FileActions File { get; private set; }
 		public EditActions Edit { get; private set; }
@@ -44,6 +44,8 @@ namespace Pinta.Core
 		
 		public ActionManager ()
 		{
+			AccelGroup = new AccelGroup ();
+			
 			File = new FileActions ();
 			Edit = new EditActions ();
 			View = new ViewActions ();
@@ -114,7 +116,6 @@ namespace Pinta.Core
 			Image.RegisterHandlers ();
 			Layers.RegisterHandlers ();
 			View.RegisterHandlers ();
-			Adjustments.RegisterHandlers ();
 			Help.RegisterHandlers ();
 		}
 	}

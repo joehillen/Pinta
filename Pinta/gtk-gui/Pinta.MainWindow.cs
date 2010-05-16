@@ -38,7 +38,7 @@ namespace Pinta
 
 		private global::Gtk.VBox vbox3;
 
-		private global::Pinta.ColorPaletteWidget colorpalettewidget1;
+		private global::Pinta.Gui.Widgets.ColorPaletteWidget colorpalettewidget1;
 
 		private global::Gtk.HBox hbox3;
 
@@ -54,13 +54,13 @@ namespace Pinta
 
 		private global::Gtk.Label label1;
 
-		private global::Pinta.LayersListWidget layerslistwidget1;
+		private global::Pinta.Gui.Widgets.LayersListWidget layerslistwidget1;
 
 		private global::Gtk.Toolbar toolbar4;
 
 		private global::Gtk.ScrolledWindow GtkScrolledWindow1;
 
-		private global::Gtk.TreeView history_treeview;
+		private global::Pinta.Gui.Widgets.HistoryTreeView history_treeview;
 
 		private global::Gtk.Toolbar toolbar2;
 
@@ -168,7 +168,7 @@ namespace Pinta
 			this.vbox3 = new global::Gtk.VBox ();
 			this.vbox3.Name = "vbox3";
 			// Container child vbox3.Gtk.Box+BoxChild
-			this.colorpalettewidget1 = new global::Pinta.ColorPaletteWidget ();
+			this.colorpalettewidget1 = new global::Pinta.Gui.Widgets.ColorPaletteWidget ();
 			this.colorpalettewidget1.Name = "colorpalettewidget1";
 			this.vbox3.Add (this.colorpalettewidget1);
 			global::Gtk.Box.BoxChild w5 = ((global::Gtk.Box.BoxChild)(this.vbox3[this.colorpalettewidget1]));
@@ -245,7 +245,7 @@ namespace Pinta
 			w14.Expand = false;
 			w14.Fill = false;
 			// Container child vbox2.Gtk.Box+BoxChild
-			this.layerslistwidget1 = new global::Pinta.LayersListWidget ();
+			this.layerslistwidget1 = new global::Pinta.Gui.Widgets.LayersListWidget ();
 			this.layerslistwidget1.Name = "layerslistwidget1";
 			this.vbox2.Add (this.layerslistwidget1);
 			global::Gtk.Box.BoxChild w15 = ((global::Gtk.Box.BoxChild)(this.vbox2[this.layerslistwidget1]));
@@ -269,8 +269,7 @@ namespace Pinta
 			this.GtkScrolledWindow1.Name = "GtkScrolledWindow1";
 			this.GtkScrolledWindow1.ShadowType = ((global::Gtk.ShadowType)(1));
 			// Container child GtkScrolledWindow1.Gtk.Container+ContainerChild
-			this.history_treeview = new global::Gtk.TreeView ();
-			this.history_treeview.CanFocus = true;
+			this.history_treeview = new global::Pinta.Gui.Widgets.HistoryTreeView ();
 			this.history_treeview.Name = "history_treeview";
 			this.GtkScrolledWindow1.Add (this.history_treeview);
 			this.vbox2.Add (this.GtkScrolledWindow1);
@@ -334,7 +333,6 @@ namespace Pinta
 			}
 			this.drawingarea1.HasDefault = true;
 			this.Show ();
-			this.drawingarea1.MotionNotifyEvent += new global::Gtk.MotionNotifyEventHandler (this.OnDrawingarea1MotionNotifyEvent);
 		}
 	}
 }

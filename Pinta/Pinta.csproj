@@ -12,7 +12,7 @@
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <CodePage>65001</CodePage>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -20,17 +20,17 @@
     <DefineConstants>DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\bin</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -46,6 +46,11 @@
     <OutputPath>..\bin</OutputPath>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <OutputPath>..\bin\</OutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="atk-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f" />
@@ -70,6 +75,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Dialogs\AboutPintaTabPage.cs" />
+    <Compile Include="Dialogs\AboutDialog.cs" />
+    <Compile Include="Dialogs\ErrorDialog.cs" />
+    <Compile Include="Dialogs\VersionInformationTabPage.cs" />
     <Compile Include="DockLibrary\AutoHideBox.cs" />
     <Compile Include="DockLibrary\DockBar.cs" />
     <Compile Include="DockLibrary\DockBarItem.cs" />
@@ -140,4 +149,41 @@
       <Name>Pinta.Gui.Widgets</Name>
     </ProjectReference>
   </ItemGroup>
+  <PropertyGroup>
+    <InstallPrefix>/usr/local</InstallPrefix>
+  </PropertyGroup>
+  <ItemGroup>
+    <BinFiles Include="$(OutputPath)/Pinta.exe" />
+    <BinFiles Include="$(OutputPath)/Pinta.*.dll" />
+    <ExtensionFiles Include="$(OutputPath)/Extensions/*.dll" />
+  </ItemGroup>
+  <Target Name="Install">
+    <Copy SourceFiles="@(BinFiles)" DestinationFolder="$(InstallPrefix)/lib/pinta" />
+    <Copy SourceFiles="@(ExtensionFiles)" DestinationFolder="$(InstallPrefix)/lib/pinta/Extensions" />
+    <MakeDir Directories="$(InstallPrefix)/bin" />
+    <Copy SourceFiles="../xdg/pinta.1" DestinationFolder="$(InstallPrefix)/share/man/man1" />
+    <Copy SourceFiles="../xdg/pinta.desktop" DestinationFolder="$(InstallPrefix)/share/applications" />
+    <Copy SourceFiles="../xdg/pinta.xpm" DestinationFolder="$(InstallPrefix)/share/pixmaps" />
+    <Copy SourceFiles="../xdg/16x16/pinta.png" DestinationFolder="$(InstallPrefix)/share/icons/hicolor/16x16/apps" />
+    <Copy SourceFiles="../xdg/22x22/pinta.png" DestinationFolder="$(InstallPrefix)/share/icons/hicolor/22x22/apps" />
+    <Copy SourceFiles="../xdg/24x24/pinta.png" DestinationFolder="$(InstallPrefix)/share/icons/hicolor/24x24/apps" />
+    <Copy SourceFiles="../xdg/32x32/pinta.png" DestinationFolder="$(InstallPrefix)/share/icons/hicolor/32x32/apps" />
+    <Copy SourceFiles="../xdg/96x96/pinta.png" DestinationFolder="$(InstallPrefix)/share/icons/hicolor/96x96/apps" />
+    <Copy SourceFiles="../xdg/scalable/pinta.svg" DestinationFolder="$(InstallPrefix)/share/icons/hicolor/scalable/apps" />
+    <Exec Command='gzip -f "$(InstallPrefix)/share/man/man1/pinta.1"' />
+  </Target>
+  <Target Name="Uninstall">
+    <Exec Command='rm -rf "$(InstallPrefix)/lib/pinta"' />
+    <Delete Files="$(InstallPrefix)/bin/pinta" />
+    <Delete Files="$(InstallPrefix)/share/man/man1/pinta.1" />
+    <Delete Files="$(InstallPrefix)/share/man/man1/pinta.1.gz" />
+    <Delete Files="$(InstallPrefix)/share/applications/pinta.desktop" />
+    <Delete Files="$(InstallPrefix)/share/pixmaps/pinta.xpm" />
+    <Delete Files="$(InstallPrefix)/share/icons/hicolor/16x16/apps/pinta.png" />
+    <Delete Files="$(InstallPrefix)/share/icons/hicolor/22x22/apps/pinta.png" />
+    <Delete Files="$(InstallPrefix)/share/icons/hicolor/24x24/apps/pinta.png" />
+    <Delete Files="$(InstallPrefix)/share/icons/hicolor/32x32/apps/pinta.png" />
+    <Delete Files="$(InstallPrefix)/share/icons/hicolor/96x96/apps/pinta.png" />
+    <Delete Files="$(InstallPrefix)/share/icons/hicolor/scalable/apps/pinta.svg" />
+  </Target>
 </Project>

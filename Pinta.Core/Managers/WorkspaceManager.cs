@@ -26,6 +26,7 @@
 
 using System;
 using Cairo;
+using Mono.Unix;
 
 namespace Pinta.Core
 {
@@ -94,11 +95,7 @@ namespace Pinta.Core
 			get { return (double)CanvasSize.Width / (double)ImageSize.Width; }
 			set {
 				if (Scale != value) {
-					int new_x = (int)(ImageSize.Width * value);
-					int new_y = (int)((new_x * ImageSize.Height) / ImageSize.Width);
-
-					CanvasSize = new Gdk.Size (new_x, new_y);
-					Invalidate ();
+					SetScale(value);
 				}
 			}
 		}
@@ -126,7 +123,7 @@ namespace Pinta.Core
 			int i = 0;
 
 			foreach (object item in (PintaCore.Actions.View.ZoomComboBox.ComboBox.Model as Gtk.ListStore)) {
-				if (((object[])item)[0].ToString () == "Window" || int.Parse (((object[])item)[0].ToString ().Trim ('%')) <= zoom) {
+				if (((object[])item)[0].ToString () == Catalog.GetString ("Window") || int.Parse (((object[])item)[0].ToString ().Trim ('%')) <= zoom) {
 					PintaCore.Actions.View.ZoomComboBox.ComboBox.Active = i - 1;
 					return;
 				}
@@ -147,7 +144,7 @@ namespace Pinta.Core
 			int i = 0;
 
 			foreach (object item in (PintaCore.Actions.View.ZoomComboBox.ComboBox.Model as Gtk.ListStore)) {
-				if (((object[])item)[0].ToString () == "Window")
+				if (((object[])item)[0].ToString () == Catalog.GetString ("Window"))
 					return;
 
 				if (int.Parse (((object[])item)[0].ToString ().Trim ('%')) < zoom) {
@@ -183,6 +180,8 @@ namespace Pinta.Core
 		
 		public void ResizeImage (int width, int height)
 		{
+			double scale;
+
 			if (ImageSize.Width == width && ImageSize.Height == height)
 				return;
 				
@@ -191,8 +190,9 @@ namespace Pinta.Core
 			ResizeHistoryItem hist = new ResizeHistoryItem (ImageSize.Width, ImageSize.Height);
 			hist.TakeSnapshotOfImage ();
 
+			scale = Scale;
+
 			ImageSize = new Gdk.Size (width, height);
-			CanvasSize = new Gdk.Size (width, height);
 			
 			foreach (var layer in PintaCore.Layers)
 				layer.Resize (width, height);
@@ -200,11 +200,14 @@ namespace Pinta.Core
 			PintaCore.History.PushNewItem (hist);
 			
 			PintaCore.Layers.ResetSelectionPath ();
-			PintaCore.Workspace.Invalidate ();
+
+			Scale = scale;
 		}
 		
 		public void ResizeCanvas (int width, int height, Anchor anchor)
 		{
+			double scale;
+
 			if (ImageSize.Width == width && ImageSize.Height == height)
 				return;
 
@@ -212,11 +215,12 @@ namespace Pinta.Core
 
 			ResizeHistoryItem hist = new ResizeHistoryItem (ImageSize.Width, ImageSize.Height);
 			hist.Icon = "Menu.Image.CanvasSize.png";
-			hist.Text = "Resize Canvas";
+			hist.Text = Catalog.GetString ("Resize Canvas");
 			hist.TakeSnapshotOfImage ();
 
 			ImageSize = new Gdk.Size (width, height);
-			CanvasSize = new Gdk.Size (width, height);
+
+			scale = Scale;
 
 			foreach (var layer in PintaCore.Layers)
 				layer.ResizeCanvas (width, height, anchor);
@@ -224,12 +228,13 @@ namespace Pinta.Core
 			PintaCore.History.PushNewItem (hist);
 
 			PintaCore.Layers.ResetSelectionPath ();
-			PintaCore.Workspace.Invalidate ();
+
+			Scale = scale;
 		}
 		
 		public Cairo.PointD WindowPointToCanvas (double x, double y)
 		{
-			return new Cairo.PointD ((x - Offset.X) / PintaCore.Workspace.Scale, (y - Offset.Y) / PintaCore.Workspace.Scale);
+			return new Cairo.PointD (Math.Round ((x - Offset.X) / PintaCore.Workspace.Scale), Math.Round ((y - Offset.Y) / PintaCore.Workspace.Scale));
 		}
 
 		public bool PointInCanvas (Cairo.PointD point)
@@ -319,6 +324,15 @@ namespace Pinta.Core
 		private void ResetTitle ()
 		{
 			PintaCore.Chrome.MainWindow.Title = string.Format ("{0}{1} - Pinta", Filename, IsDirty ? "*" : "");
+		}
+
+		private void SetScale(double scale)
+		{
+			int new_x = (int)(ImageSize.Width * scale);
+			int new_y = (int)((new_x * ImageSize.Height) / ImageSize.Width);
+
+			CanvasSize = new Gdk.Size(new_x, new_y);
+			Invalidate();
 		}
 
 		#region Protected Methods

@@ -333,8 +333,6 @@ namespace Pinta.Core
 			g.LineTo (r.X + radius, r.Y + r.Height);
 			g.Arc (r.X + radius, r.Y + r.Height - radius, radius, Math.PI / 2, Math.PI);
 			g.ClosePath ();
-
-			g.Restore ();
 			
 			g.Color = fill;
 			g.FillPreserve ();
@@ -366,8 +364,6 @@ namespace Pinta.Core
 			g.LineTo (r.X + radius, r.Y + r.Height);
 			g.Arc (r.X + radius, r.Y + r.Height - radius, radius, Math.PI / 2, Math.PI);
 			g.ClosePath ();
-			
-			g.Restore ();
 
 			g.Color = fill;
 			
@@ -469,32 +465,49 @@ namespace Pinta.Core
 			return dirty;
 		}
 
+		private static Pango.Style CairoToPangoSlant (FontSlant slant)
+		{
+			switch (slant) {
+			case FontSlant.Italic:
+				return Pango.Style.Italic;
+			case FontSlant.Oblique:
+				return Pango.Style.Oblique;
+			default:
+				return Pango.Style.Normal;
+			}
+		}
+
+		private static Pango.Weight CairoToPangoWeight (FontWeight weight)
+		{
+			return (weight == FontWeight.Bold) ? Pango.Weight.Bold : Pango.Weight.Normal;
+		}
+
 		public static Rectangle DrawText (this Context g, PointD p, string family, FontSlant slant, FontWeight weight, double size, Color color, string text)
 		{
 			g.Save ();
 
 			g.MoveTo (p.X, p.Y);
-			g.SelectFontFace (family, slant, weight);
-			g.SetFontSize (size);
 			g.Color = color;
 			
-			TextExtents te = g.TextExtents(text);
-			//TODO alignment
+			Pango.Layout layout = Pango.CairoHelper.CreateLayout (g);
+			Pango.FontDescription fd = new Pango.FontDescription ();
+			fd.Family = family;
+			fd.Style = CairoToPangoSlant (slant);
+			fd.Weight = CairoToPangoWeight (weight);
+			fd.AbsoluteSize = size * Pango.Scale.PangoScale;
+			layout.FontDescription = fd;
+			layout.SetText (text);
+			Pango.CairoHelper.ShowLayoutLine (g, layout.Lines[0]);
 			
-			// Center text on bottom
-			/*// TODO cut the string in char array and for each center on bottom
-			 * TextExtents te = g.TextExtents("a");
-				cr.MoveTo(0.5 - te.Width  / 2 - te.XBearing, 0.5 - te.Height / 2 - te.YBearing);
-*/
-			//// Draw
-			g.ShowText (text);
-			//or
-			//g.TextPath(text);
-			//g.Fill();
+			Pango.Rectangle unused = Pango.Rectangle.Zero;
+			Pango.Rectangle te = Pango.Rectangle.Zero;
+			layout.GetExtents (out unused, out te);
+			
+			(layout as IDisposable).Dispose();
 			
 			g.Restore ();
 
-			return new Rectangle(te.XBearing, te.YBearing, te.Width, te.Height);
+			return new Rectangle(te.X, te.Y, te.Width, te.Height);
 		}
 
 		public static void DrawPixbuf (this Context g, Gdk.Pixbuf pixbuf, Point dest)
@@ -624,15 +637,21 @@ namespace Pinta.Core
 		{
 			if (x < r.X || x >= r.X + r.Width)
 				return false;
-			
+
 			if (y < r.Y || y >= r.Y + r.Height)
 				return false;
-			
+
 			return true;
 		}
-		
-		public unsafe static Gdk.Pixbuf ToPixbuf (this Cairo.ImageSurface surf)
+
+		public static bool ContainsPoint (this Cairo.Rectangle r, Cairo.PointD point)
 		{
+			return ContainsPoint (r, point.X, point.Y);
+		}
+		
+		public unsafe static Gdk.Pixbuf ToPixbuf (this Cairo.ImageSurface surfSource)
+		{
+			Cairo.ImageSurface surf = surfSource.Clone ();
 			ColorBgra* dstPtr = (ColorBgra*)surf.DataPtr;
 			int len = surf.Data.Length / 4;
 
@@ -643,6 +662,7 @@ namespace Pinta.Core
 			}
 
 			Gdk.Pixbuf pb = new Gdk.Pixbuf (surf.Data, true, 8, surf.Width, surf.Height, surf.Stride);
+			(surf as IDisposable).Dispose ();
 			return pb;
 		}
 		
@@ -731,6 +751,11 @@ namespace Pinta.Core
 		public static string ToString2 (this Cairo.Color c)
 		{
 			return string.Format ("R: {0} G: {1} B: {2} A: {3}", c.R, c.G, c.B, c.A);
+		}
+
+		public static string ToString2 (this Cairo.PointD c)
+		{
+			return string.Format ("{0}, {1}", c.X, c.Y);
 		}
 
 		public static uint ToUint (this Cairo.Color c)
